@@ -108,9 +108,9 @@ jobs:
         run: |
           cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}
           rm -rf bootable/recovery
-          git clone https://gitlab.com/OrangeFox/Testing/Recovery.git -b fox_12.1_R12-new bootable/recovery
+          git clone https://gitlab.com/OrangeFox/bootable/Recovery.git -b fox_12.1 bootable/recovery
           rm -rf vendor/recovery
-          git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_12.1-R12-new vendor/recovery
+          git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_12.1 vendor/recovery
           /tmp/tg_bot.sh "✅ *Sync completed successfully*" "private"
 
       - name: Clone Device Tree
