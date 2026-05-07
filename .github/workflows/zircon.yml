@@ -104,11 +104,11 @@ jobs:
           cd sync
           ./orangefox_sync.sh --branch ${{ inputs.MANIFEST_BRANCH }} --path ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}
 
-      - name: Sync Beta Recovery & Vendor
+      - name: Sync Recovery & Vendor
         run: |
           cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}
           rm -rf bootable/recovery
-          git clone https://gitlab.com/OrangeFox/bootable/Recovery.git -b fox_12.1 bootable/recovery
+          git clone https://gitlab.com/OrangeFox/Testing/Recovery.git -b fox_12.1 bootable/recovery
           rm -rf vendor/recovery
           git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_12.1 vendor/recovery
           /tmp/tg_bot.sh "✅ *Sync completed successfully*" "private"
