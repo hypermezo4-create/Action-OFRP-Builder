@@ -82,9 +82,9 @@ jobs:
         distribution: 'zulu'
         java-version: '11'
 
-  name: Set-up Manifest
-        if: inputs.MANIFEST_BRANCH == '11.0' || inputs.MANIFEST_BRANCH == '12.1'
-        run: |
+    - name: Set-up Manifest
+      if: inputs.MANIFEST_BRANCH == '11.0' || inputs.MANIFEST_BRANCH == '12.1'
+      run: |
           mkdir -p ${GITHUB_WORKSPACE}/OrangeFox
           cd ${GITHUB_WORKSPACE}/OrangeFox
           git config --global user.name "${{ github.actor }}"
