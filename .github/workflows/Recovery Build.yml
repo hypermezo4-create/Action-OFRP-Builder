@@ -43,6 +43,17 @@ jobs:
     - name: Cleanup
       uses: rokibhasansagar/slimhub_actions@main
 
+    # Setup SSH for GitLab
+    - name: Setup SSH Keys
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Add GitLab to known hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
+
     - name: Create Telegram sender script
       run: |
         cat <<'EOF' > /tmp/send_msg.sh
@@ -91,6 +102,23 @@ jobs:
         ./orangefox_sync.sh --branch ${{ env.MANIFEST_BRANCH }} --path ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ env.MANIFEST_BRANCH }}
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
 
+    - name: Replace bootable/recovery with Testing/Recovery
+      run: |
+        /tmp/send_msg.sh "🔁 Replacing bootable/recovery..."
+
+        cd ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ env.MANIFEST_BRANCH }}
+
+        rm -rf bootable/recovery
+
+        git clone --depth=1 -b fox_14.1-R12-qpr2-test \
+          git@gitlab.com:OrangeFox/Testing/Recovery.git \
+          bootable/recovery
+
+        cd vendor/recovery
+        git fetch origin fox_14.1-R12-new
+        git checkout fox_14.1-R12-new
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+
     - name: Clone device tree
       run: |
         /tmp/send_msg.sh "🌲 Cloning device tree for \`${{ env.DEVICE_NAME }}\`..."
@@ -111,7 +139,7 @@ jobs:
     - name: Set Swap Space
       uses: pierotofy/set-swap-space@master
       with:
-        swap-size-gb: 12
+        swap-size-gb: 40
 
     - name: Building recovery
       run: |
@@ -120,6 +148,8 @@ jobs:
         set +e
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
+        export FOX_BUILD_TYPE="Stable"
+        unset FOX_MAINTAINER_PATCH_VERSION
         set -e
         lunch ${{ env.MAKEFILE_NAME }}-ap2a-eng && make clean && mka adbd ${{ env.BUILD_TARGET }}image -j$(nproc --all)
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
