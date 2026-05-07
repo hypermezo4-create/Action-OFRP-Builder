@@ -7,10 +7,9 @@ on:
         description: "Select device tree repository"
         required: true
         type: choice
-        default: https://github.com/AzzyC/ofox_device_xiaomi_peridot
+        default: https://github.com/hypermezo4-create/device_xiaomi_zircon-TWRP
         options:
-          - https://github.com/AzzyC/ofox_device_xiaomi_peridot
-          - https://gitlab.com/OrangeFox/device/peridot_new
+          - https://github.com/hypermezo4-create/device_xiaomi_zircon-TWRP
 
       device_tree_branch:
         description: "Select device tree branch"
