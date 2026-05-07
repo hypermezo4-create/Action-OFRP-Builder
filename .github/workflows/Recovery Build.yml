@@ -14,11 +14,11 @@ on:
       device_tree_branch:
         description: "Select device tree branch"
         required: true
-        default: fox_14.1
+        default: fox_12.1
         type: choice
         options:
           - fox_14.1
-          - auto-dfe
+          - fox_12.1
 
 jobs:
   build:
@@ -29,12 +29,12 @@ jobs:
 
     env:
       SYNC_URL: https://gitlab.com/OrangeFox/sync.git
-      MANIFEST_BRANCH: 14.1
+      MANIFEST_BRANCH: 12.1
       DEVICE_TREE_URL: ${{ inputs.device_tree_url }}
       DEVICE_TREE_BRANCH: ${{ inputs.device_tree_branch }}
-      DEVICE_PATH: device/xiaomi/peridot
-      DEVICE_NAME: peridot
-      MAKEFILE_NAME: twrp_peridot
+      DEVICE_PATH: device/xiaomi/zircon
+      DEVICE_NAME: zircon
+      MAKEFILE_NAME: twrp_zircon
       BUILD_TARGET: recovery
 
     steps:
