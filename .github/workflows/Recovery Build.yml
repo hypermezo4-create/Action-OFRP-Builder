@@ -82,31 +82,23 @@ jobs:
         distribution: 'zulu'
         java-version: '11'
 
-    - name: Sync OrangeFox sources and minimal manifest
-      run: |
-        /tmp/send_msg.sh "🌐 Syncing OrangeFox sources..."
-        cd ${{ steps.pwd.outputs.workspace-folder }}
-        git clone --depth=1 ${{ env.SYNC_URL }}
-        cd sync
-        ./orangefox_sync.sh --branch ${{ env.MANIFEST_BRANCH }} --path ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ env.MANIFEST_BRANCH }}
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+  name: Set-up Manifest
+        if: inputs.MANIFEST_BRANCH == '11.0' || inputs.MANIFEST_BRANCH == '12.1'
+        run: |
+          mkdir -p ${GITHUB_WORKSPACE}/OrangeFox
+          cd ${GITHUB_WORKSPACE}/OrangeFox
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+          git clone https://gitlab.com/OrangeFox/sync.git -b master
+          cd sync
+          ./orangefox_sync.sh --branch ${{ inputs.MANIFEST_BRANCH }} --path ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}
 
-    - name: Clone device tree
-      run: |
-        /tmp/send_msg.sh "🌲 Cloning device tree for \`${{ env.DEVICE_NAME }}\`..."
-        cd ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ env.MANIFEST_BRANCH }}
-        git clone --depth=1 ${{ env.DEVICE_TREE_URL }} -b ${{ env.DEVICE_TREE_BRANCH }} ./${{ env.DEVICE_PATH }}
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
-
-    - name: Get latest device tree commit
-      id: devtree_commit
-      run: |
-        cd ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ env.MANIFEST_BRANCH }}/${{ env.DEVICE_PATH }}
-        LATEST_COMMIT=$(git rev-parse --short=7 HEAD)
-        echo "LATEST_COMMIT=$LATEST_COMMIT" >> $GITHUB_OUTPUT
-        echo "Latest device tree commit: $LATEST_COMMIT"
-        /tmp/send_msg.sh "🌲 Device tree: [${LATEST_COMMIT}](${{ env.DEVICE_TREE_URL }}/tree/$LATEST_COMMIT)"
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+      - name: Clone Device Tree
+        run: |
+          cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}
+          git clone ${{ inputs.DEVICE_TREE }} -b ${{ inputs.DEVICE_TREE_BRANCH }} ./${{ inputs.DEVICE_PATH }}
+          cd ${{ inputs.DEVICE_PATH }}
+          echo "COMMIT_ID=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
     - name: Set Swap Space
       uses: pierotofy/set-swap-space@master
