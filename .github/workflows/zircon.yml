@@ -108,7 +108,7 @@ jobs:
         run: |
           cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}
           rm -rf bootable/recovery
-          git clone https://gitlab.com/OrangeFox/Testing/Recovery.git -b fox_12.1 bootable/recovery
+          git clone https://gitlab.com/OrangeFox/bootable/Recovery.git -b fox_12.1 bootable/recovery
           rm -rf vendor/recovery
           git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_12.1 vendor/recovery
           /tmp/tg_bot.sh "✅ *Sync completed successfully*" "private"
@@ -140,7 +140,7 @@ jobs:
             OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}/out/target/product/${{ inputs.DEVICE_NAME }}/OrangeFox*.img
             OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}/out/target/product/${{ inputs.DEVICE_NAME }}/vendor_boot.img
             OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}/out/target/product/${{ inputs.DEVICE_NAME }}/OrangeFox*.zip
-          name: OrangeFox Recovery for ${{ inputs.DEVICE_NAME }} // Official Beta
+          name: OrangeFox Recovery for ${{ inputs.DEVICE_NAME }} // unoficial Beta
           tag_name: ${{ github.run_id }}
           body: |
             - **Maintainer:** Mostafameesr
