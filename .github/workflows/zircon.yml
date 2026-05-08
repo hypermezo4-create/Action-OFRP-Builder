@@ -126,7 +126,7 @@ jobs:
           echo "BUILD_START=$BUILD_START" >> $GITHUB_ENV
           cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}
           set -x
-          source build/envsetup.sh
+          source build/envsetup.sh || true
           export ALLOW_MISSING_DEPENDENCIES=true
           lunch twrp_${{ inputs.DEVICE_NAME }}-eng
           make clean
