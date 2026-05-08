@@ -1,0 +1,159 @@
+name: OrangeFox -14.1- Build for Zircon
+
+on:
+  workflow_dispatch:
+    inputs:
+      MANIFEST_BRANCH:
+        description: 'OrangeFox Manifest Branch'
+        required: true
+        default: '14.1'
+        type: choice
+        options:
+          - '14.1'
+          - '11.0'
+      DEVICE_TREE:
+        description: 'OrangeFox Device Tree'
+        required: true
+        default: 'https://github.com/hypermezo4-create/device_xiaomi_zircon-TWRP'
+      DEVICE_TREE_BRANCH:
+        description: 'OrangeFox Device Tree Branch'
+        required: true
+        default: 'fox_14.1'
+      DEVICE_PATH:
+        description: 'Specify your Device Path'
+        required: true
+        default: 'device/xiaomi/zircon'
+      DEVICE_NAME:
+        description: 'Specify your Device Codename'
+        required: true
+        default: 'zircon'
+      BUILD_TARGET:
+        description: 'Specify your Build Target'
+        required: true
+        default: 'vendorboot'
+        type: choice
+        options:
+          - 'boot'
+          - 'recovery'
+          - 'vendorboot'
+
+jobs:
+  build:
+    name: Build OFR Beta for Zircon
+    runs-on: ubuntu-22.04
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Telegram Script
+        run: |
+          cat <<'EOF' > /tmp/tg_bot.sh
+          #!/bin/bash
+          MSG="$(printf "$1")"
+          TARGET="$2"
+          curl -s --fail \
+            -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="$MSG" \
+            -d parse_mode="Markdown" \
+            -d disable_web_page_preview=true > /dev/null 2>&1 || true
+          if [ "$TARGET" == "all" ] && [ -n "${{ secrets.TELEGRAM_GROUP_ID }}" ]; then
+            curl -s --fail \
+              -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+              -d chat_id="${{ secrets.TELEGRAM_GROUP_ID }}" \
+              -d text="$MSG" \
+              -d parse_mode="Markdown" \
+              -d disable_web_page_preview=true > /dev/null 2>&1 || true
+          fi
+          EOF
+          chmod +x /tmp/tg_bot.sh
+          /tmp/tg_bot.sh "🚀 *Starting OrangeFox Build*
+          📱 **Device:** \`${{ inputs.DEVICE_NAME }}\`
+          🌿 **Branch:** \`${{ inputs.MANIFEST_BRANCH }}\` (Beta)
+          👤 **By:** \`${{ github.actor }}\`
+          🔗 [View Live Workflow Run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})" "all"
+
+      - name: Clean-up
+        uses: rokibhasansagar/slimhub_actions@main
+
+      - name: Swap Space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 24
+
+      - name: Build Environment
+        run: |
+          sudo apt update && sudo apt install aria2 -y
+          git clone https://gitlab.com/OrangeFox/misc/scripts.git -b master
+          cd scripts
+          sudo bash setup/android_build_env.sh
+
+      - name: Set-up Manifest & Authenticate GitLab
+        run: |
+          /tmp/tg_bot.sh "⏳ *Syncing sources started...*" "private"
+          git config --global url."https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.com/".insteadOf "https://gitlab.com/"
+          mkdir -p ${GITHUB_WORKSPACE}/OrangeFox
+          cd ${GITHUB_WORKSPACE}/OrangeFox
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+          git clone https://gitlab.com/OrangeFox/sync.git -b master
+          cd sync
+          ./orangefox_sync.sh --branch ${{ inputs.MANIFEST_BRANCH }} --path ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}
+
+      - name: Sync Recovery & Vendor
+        run: |
+          cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}
+          rm -rf bootable/recovery
+          git clone https://gitlab.com/OrangeFox/bootable/Recovery.git -b fox_14.1 bootable/recovery
+          rm -rf vendor/recovery
+          git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_14.1 vendor/recovery
+          /tmp/tg_bot.sh "✅ *Sync completed successfully*" "private"
+
+      - name: Clone Device Tree
+        run: |
+          cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}
+          git clone ${{ inputs.DEVICE_TREE }} -b ${{ inputs.DEVICE_TREE_BRANCH }} ./${{ inputs.DEVICE_PATH }}
+          echo "COMMIT_ID=$(git -C ${{ inputs.DEVICE_PATH }} rev-parse HEAD)" >> $GITHUB_ENV
+
+      - name: Building OrangeFox
+        run: |
+          /tmp/tg_bot.sh "⚙️ *Starting recovery build...*" "private"
+          BUILD_START=$(date +%s)
+          echo "BUILD_START=$BUILD_START" >> $GITHUB_ENV
+          cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}
+          set -x
+          source build/envsetup.sh || true
+          export ALLOW_MISSING_DEPENDENCIES=true
+          lunch twrp_${{ inputs.DEVICE_NAME }}-eng
+          make clean
+          mka adbd ${{ inputs.BUILD_TARGET }}image
+          BUILD_END=$(date +%s)
+          echo "BUILD_DIFF=$((BUILD_END - BUILD_START))" >> $GITHUB_ENV
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}/out/target/product/${{ inputs.DEVICE_NAME }}/OrangeFox*.img
+            OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}/out/target/product/${{ inputs.DEVICE_NAME }}/vendor_boot.img
+            OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}/out/target/product/${{ inputs.DEVICE_NAME }}/OrangeFox*.zip
+          name: OrangeFox Recovery for ${{ inputs.DEVICE_NAME }} // unoficial Beta
+          tag_name: ${{ github.run_id }}
+          body: |
+            - **Maintainer:** Mostafameesr
+            - **Device:** [Zircon Tree](${{ inputs.DEVICE_TREE }})
+            - **Target:** ${{ inputs.BUILD_TARGET }}
+
+      - name: Notify Results
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          if [ "$STATUS" == "success" ]; then
+            /tmp/tg_bot.sh "🎉 *Build Successful!* [Download](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_RUN_ID})" "all"
+          else
+            /tmp/tg_bot.sh "❌ *Build Failed!*" "all"
+          fi
