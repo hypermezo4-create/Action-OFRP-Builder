@@ -1,4 +1,4 @@
-name: OrangeFox -14.1- Build for Zircon
+name: OrangeFox -Beta- Build for Zircon
 
 on:
   workflow_dispatch:
@@ -6,10 +6,10 @@ on:
       MANIFEST_BRANCH:
         description: 'OrangeFox Manifest Branch'
         required: true
-        default: '14.1'
+        default: '12.1'
         type: choice
         options:
-          - '14.1'
+          - '12.1'
           - '11.0'
       DEVICE_TREE:
         description: 'OrangeFox Device Tree'
@@ -18,7 +18,7 @@ on:
       DEVICE_TREE_BRANCH:
         description: 'OrangeFox Device Tree Branch'
         required: true
-        default: 'fox_14.1'
+        default: 'fox_12.1'
       DEVICE_PATH:
         description: 'Specify your Device Path'
         required: true
@@ -108,9 +108,9 @@ jobs:
         run: |
           cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}
           rm -rf bootable/recovery
-          git clone https://gitlab.com/OrangeFox/bootable/Recovery.git -b fox_14.1 bootable/recovery
+          git clone https://gitlab.com/OrangeFox/Testing/Recovery.git -b fox_12.1 bootable/recovery
           rm -rf vendor/recovery
-          git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_14.1 vendor/recovery
+          git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_12.1 vendor/recovery
           /tmp/tg_bot.sh "✅ *Sync completed successfully*" "private"
 
       - name: Clone Device Tree
@@ -128,7 +128,7 @@ jobs:
           set -x
           source build/envsetup.sh || true
           export ALLOW_MISSING_DEPENDENCIES=true
-          lunch twrp_${{ inputs.DEVICE_NAME }}-ap2a-eng
+          lunch twrp_${{ inputs.DEVICE_NAME }}-eng
           make clean
           mka adbd ${{ inputs.BUILD_TARGET }}image
           BUILD_END=$(date +%s)
@@ -141,7 +141,7 @@ jobs:
             OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}/out/target/product/${{ inputs.DEVICE_NAME }}/OrangeFox*.img
             OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}/out/target/product/${{ inputs.DEVICE_NAME }}/vendor_boot.img
             OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}/out/target/product/${{ inputs.DEVICE_NAME }}/OrangeFox*.zip
-          name: OrangeFox Recovery for ${{ inputs.DEVICE_NAME }} // unoficial Beta
+          name: OrangeFox Recovery for ${{ inputs.DEVICE_NAME }} // Official Beta
           tag_name: ${{ github.run_id }}
           body: |
             - **Maintainer:** Mostafameesr
